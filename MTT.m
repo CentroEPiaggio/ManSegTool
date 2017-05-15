@@ -53,7 +53,8 @@ function MTT_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to MTT (see VARARGIN)
 global  t SelectedMap segON ab VnewExist
 
-handles.path_file = cd;
+% handles.path_file = cd;
+handles.path_file = pwd;
 handles.path_save  = handles.path_file;
 
 %default variables
@@ -69,11 +70,13 @@ handles.slider1.Value = 1;  %segmented stack
 
 handles.slider1_text = [num2str(handles.slider1.Value), '/', '1'];
 set(handles.text1, 'String', handles.slider1_text);
-set(handles.slider1, 'Value', handles.slider1.Value)
+handles.slider1.Enable = 'off';
+% set(handles.slider1, 'Value', handles.slider1.Value)
 
 handles.slider2_text = [num2str(handles.slider2.Value), '/', '1'];
 set(handles.text2, 'String', handles.slider2_text);
-set(handles.slider2, 'Value', handles.slider2.Value)
+handles.slider2.Enable = 'off';
+% set(handles.slider2, 'Value', handles.slider2.Value)
 
 set(handles.popupmenu1, 'Value', 1)
 handles.radiobutton5.Value = 1;
@@ -162,6 +165,8 @@ switch eventdata.Key
         
         if handles.slider1.Value == 1
             
+            set(handles.radiobutton6, 'Value', 1)
+            handles.n =1;
             set(handles.radiobutton8, 'Enable', 'off')
             
         end
@@ -281,6 +286,10 @@ switch eventdata.Key
         if tmp == handles.num
             
             handles.slider1.Value = handles.num;
+            
+            set(handles.radiobutton6, 'Value', 1)
+            handles.n =1;
+            
             set(handles.radiobutton7, 'Enable', 'off');
             
         else
@@ -580,7 +589,6 @@ end
 
 if splitON == 1; pushbutton13_Callback(handles.pushbutton13, eventdata, handles); end
 
-
 % --- Outputs from this function are returned to the command line.
 function varargout = MTT_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
@@ -598,18 +606,23 @@ function pushbutton1_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global t SelectedMap VnewExist
+global t SelectedMap VnewExist h1 h2 h3 h4
+
+if ishandle(h1); close(h1); end
+if ishandle(h2); close(h2); end
+if ishandle(h3); close(h3); end
+if ishandle(h4); close(h4); end
 
 [handles.I_file_tmp, handles.path_file_tmp] = uigetfile('*.tif');
 
 if  handles.I_file_tmp ~= 0
     
-    handles.I_file    = handles.I_file_tmp;
-    handles.path_file = handles.path_file_tmp;
-    cd(handles.path_file)       %original stack path
+%     handles.I_file    = handles.I_file_tmp;
+%     handles.path_file = handles.path_file_tmp;
+%     cd(handles.path_file)       %original stack path
     
-    handles.Vnew    = imread(handles.I_file);
-    info_im = imfinfo(handles.I_file);
+    handles.Vnew    = imread(strcat(handles.path_file_tmp,handles.I_file_tmp));
+    info_im = imfinfo(strcat(handles.path_file_tmp,handles.I_file_tmp));
     
     handles.num  = numel(info_im);
     handles.n_y  = info_im.Width;
@@ -619,7 +632,7 @@ if  handles.I_file_tmp ~= 0
     
     for k = 1:handles.num
         
-        A = imread(handles.I_file, k);
+        A = imread(strcat(handles.path_file_tmp,handles.I_file_tmp), k);
         handles.Vnew(:, :, k) = A(:, :);
         
     end
@@ -638,9 +651,10 @@ if  handles.I_file_tmp ~= 0
     set(handles.radiobutton6, 'Enable', 'on')
     
     set(handles.popupmenu1, 'Enable', 'on') 
+    handles.slider1.Enable = 'on';
+    handles.slider2.Enable = 'on';
     
-    
-    cd(handles.olddir)
+%     cd(handles.olddir)
     clear Imm_tmp k info_im
     
     set(handles.slider1, 'Min', 1);
@@ -672,17 +686,18 @@ if  handles.I_file_tmp ~= 0
                 handles.nfile = handles.nfile_tmp;
                 handles.npath = handles.npath_tmp;
                 handles.AnotherNeuron = 1;     
-                
+                doIhavetoask = 1;
             else
                 
                 handles.NeuSeg = false(handles.n_x, handles.n_y, handles.num);
                 handles.Neu = 1;
                 handles.AnotherNeuron = 0;
+                doIhavetoask = 0;
                 
-                return
                 
             end
             
+            if doIhavetoask == 1;
             stringa   = strcat(handles.npath, handles.nfile);
             struttura = load(stringa);
             
@@ -709,7 +724,7 @@ if  handles.I_file_tmp ~= 0
                     
                     t = handles.NeuSeg_struct.tempo;
                     
-                case 'No'
+                case {'No'}
                     
                     lungh   = length(fieldnames(struttura));
                     handles.NeuSeg = false(handles.n_x, handles.n_y, handles.num);
@@ -718,10 +733,10 @@ if  handles.I_file_tmp ~= 0
                     axes(handles.axes2)
                     imagesc(handles.NeuSeg(:, :, 1)), colormap(handles.axes2, SelectedMap), %truesize
                     axis off
-                    
+                
             end
-            
-        case 'No'
+            end
+        case {'No','Cancel'}
             
             handles.NeuSeg = false(handles.n_x, handles.n_y, handles.num);
             handles.Neu = 1;
@@ -748,7 +763,7 @@ end
 % Update handles structure
 guidata(hObject, handles);
 set(0, 'userdata', handles);
-
+handles
 set(hObject, 'Enable', 'off')
 drawnow;
 set(hObject, 'Enable', 'on')
@@ -762,7 +777,7 @@ function slider1_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-global  h1 ab segON SelectedMap
+global  h1 h2 h3 h4 ab segON SelectedMap undoON splitON
 
 % axes(handles.axes1); imagesc(handles.Vnew(:, :, handles.slider1.Value));
 guidata(hObject, handles); set(0, 'userdata', handles);
@@ -781,7 +796,7 @@ if handles.radiobutton8.Value == 1 || handles.radiobutton7.Value == 1 || handles
     handles.transp = 1;
     
     if uint16(handles.slider1.Value) > 1 && uint16(handles.slider1.Value) < handles.num
-        disp('ciao')
+        
         set(handles.radiobutton8, 'Enable', 'on');
         set(handles.radiobutton7, 'Enable', 'on');
         set(handles.radiobutton6, 'Enable', 'on');
@@ -826,8 +841,10 @@ if handles.radiobutton8.Value == 1 || handles.radiobutton7.Value == 1 || handles
 
     elseif uint16(handles.slider1.Value) == 1 
             
+            set(handles.radiobutton6,'Value',1)
+            handles.n = handles.radiobutton6.Value;
             set(handles.radiobutton8, 'Enable', 'off');
-            set(handles.radiobutton7, 'Enabl', 'on');
+            set(handles.radiobutton7, 'Enable', 'on');
             set(handles.radiobutton6, 'Enable', 'on');
             
             if handles.npiu1 == 1
@@ -858,8 +875,10 @@ if handles.radiobutton8.Value == 1 || handles.radiobutton7.Value == 1 || handles
 
     elseif  uint16(handles.slider1.Value) == handles.num 
             
+            set(handles.radiobutton6,'Value',1);
+            handles.n = handles.radiobutton6.Value;
             set(handles.radiobutton8, 'Enable', 'on');
-            set(handles.radiobutton7, 'Enabl', 'off');
+            set(handles.radiobutton7, 'Enable', 'off');
             set(handles.radiobutton6, 'Enable', 'on');
             
             if handles.n == 1
@@ -916,11 +935,13 @@ else
     
     if uint16(handles.slider1.Value) == 1
         
+        
         set(handles.radiobutton8, 'Enable', 'off');
         set(handles.radiobutton6, 'Enable', 'on');
         set(handles.radiobutton7, 'Enable', 'on');
         
     elseif uint16(handles.slider1.Value) == handles.num
+        
         
         set(handles.radiobutton8, 'Enable', 'on');
         set(handles.radiobutton6, 'Enable', 'on');
@@ -956,27 +977,48 @@ if ishandle(h1)
     
 end
 
-guidata(hObject, handles); set(0, 'userdata', handles);
-% set(0,'userdata',handles);
-if segON == 1; pushbutton2_Callback(hObject, eventdata, handles); end
-
-%03/05 un po piu tardi
-% % % % % % % guidata(hObject, handles);
-% set(0,'userdata',handles);
-if ishandle(h1)
+if ishandle(h2)
     
     guidata(hObject, handles); set(0, 'userdata', handles)
-    clf (h1, 'reset')
-    ab = 0;
+    clf (h2, 'reset')
     
-    figure(h1); imagesc(handles.Vnew(:, :, handles.slider1.Value)); colormap(h1, SelectedMap), %truesize
+    figure(h2); imagesc(handles.NeuSeg(:, :, uint16(handles.slider1.Value))); colormap(h2, SelectedMap), %truesize
     axis off
     
 end
 
+if ishandle(h3)
+    
+    guidata(hObject, handles); set(0, 'userdata', handles)
+    clf (h3, 'reset')
+    
+    figure(h3); imagesc(handles.NeuSeg(:, :, uint16(handles.slider1.Value))); colormap(h3, SelectedMap), %truesize
+    axis off
+    
+end
 guidata(hObject, handles); set(0, 'userdata', handles);
 % set(0,'userdata',handles);
 if segON == 1; pushbutton2_Callback(hObject, eventdata, handles); end
+if undoON == 1; pushbutton6_Callback(hObject, eventdata, handles); end
+if splitON == 1; pushbutton13_Callback(hObject, eventdata, handles); end
+
+% %03/05 un po piu tardi
+% % % % % % % % guidata(hObject, handles);
+% % set(0,'userdata',handles);
+% if ishandle(h1)
+%     
+%     guidata(hObject, handles); set(0, 'userdata', handles)
+%     clf (h1, 'reset')
+%     ab = 0;
+%     
+%     figure(h1); imagesc(handles.Vnew(:, :, handles.slider1.Value)); colormap(h1, SelectedMap), %truesize
+%     axis off
+%     
+% end
+% 
+% guidata(hObject, handles); set(0, 'userdata', handles);
+% set(0,'userdata',handles);
+% if segON == 1; pushbutton2_Callback(hObject, eventdata, handles); end
 
 % --- Executes during object creation, after setting all properties.
 function slider1_CreateFcn(hObject, eventdata, handles)
@@ -996,11 +1038,14 @@ function pushbutton2_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global t  h1 t1  ab segON SelectedMap
+global t  h1 h2 h3 h4 t1  ab segON SelectedMap undoON splitON closedGUI
+
 
 handles = get(0, 'userdata');
-guidata(hObject, handles);   
+guidata(hObject, handles); 
 
+undoON = 0;
+splitON= 0;
 if handles.firstsegON == 0  %at the first click, ManSegTool automatically enables all the graphical objects the user need
     
     handles.firstsegON = 1;
@@ -1033,6 +1078,11 @@ onair = 'Segmentation ON';
 set(handles.text3,'string',onair);
 set(handles.text3, 'FontSize', 14, 'FontWeight', 'bold');
 
+
+if ishandle(h2); close(h2); end
+if ishandle(h3); close(h3); end
+if ishandle(h4); close(h4); end
+
 if handles.transp == 1 && handles.tb == 1
     
     if ishandle(h1) == 1
@@ -1050,6 +1100,7 @@ if handles.transp == 1 && handles.tb == 1
     set(h1,'KeyPressFcn',@hotkey_fig1)
     set(h1, 'Name', ['Segment slice no.' num2str(uint16(handles.slider1.Value)) '/' num2str(handles.num)]);
     set(h1, 'DeleteFcn', 'ab=1;')
+
 %     handles.zstack = handles.slider1.Value;
     guidata(hObject, handles); set(0,'userdata', handles);
     
@@ -1083,7 +1134,7 @@ if handles.transp == 1 && handles.tb == 1
             guidata(hObject, handles); set(0, 'userdata', handles);
             
         catch
-            
+
             %flag for segmentation OFF
             axes(handles.axes3)
             pos = [0 0 2 2];
@@ -1098,7 +1149,7 @@ if handles.transp == 1 && handles.tb == 1
             
             segON = 0;
             t = t+toc(t1);
-            
+         
             break
             
         end
@@ -1189,11 +1240,15 @@ function pushbutton6_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton6 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global  h1 h2 h3 SelectedMap ab segON undo undoON
+global  h1 h2 h3 h4 SelectedMap ab segON undo undoON splitON closedGUI
 % 
+
 handles = get(0, 'userdata');
 guidata(hObject, handles)
 
+
+segON  = 0;
+splitON= 0;
 undoON = 1;
 
 % handles.slider1.Value = get(handles.slider1,'Value');
@@ -1215,7 +1270,6 @@ onair = 'Segmentation OFF';
 set(handles.text3, 'string', onair);
 set(handles.text3, 'FontSize', 14);
 
-segON = 0;
 
 axes(handles.axes1);
 imagesc(handles.Vnew(:, :, uint16(handles.slider1.Value))), colormap(handles.axes1, SelectedMap), %truesize
@@ -1233,17 +1287,9 @@ axis off
 handles.slider2_text = [num2str(uint16(handles.slider2.Value)), '/', num2str(handles.num)];
 set(handles.text2, 'String', handles.slider2_text)
 
-if ishandle(h1)
-    
-    close(h1)
-
-end
-
-if ishandle(h3)
-    
-    close(h3)
-
-end
+if ishandle(h1); close(h1); end
+if ishandle(h3); close(h3); end
+if ishandle(h4); close(h4); end
 
 undo = 0;
 
@@ -1322,8 +1368,8 @@ while ishandle(h2)
         guidata(hObject, handles);set(0, 'userdata', handles);
         
     catch
-        
         undoON = 0;
+        
         break
         
     end
@@ -1397,7 +1443,7 @@ end
 
 handles.output = hObject;
 % Update handles structure
-guidata(hObject, handles);
+guidata(hObject, handles);set(0,'userdata',handles)
 
 
 % --- Executes on button press in pushbutton9.
@@ -1406,16 +1452,31 @@ function pushbutton9_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton9 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+global h1 h2 h3 h4
 
 handles=get(0, 'userdata');
 guidata(hObject, handles);
 
-[handles.faces, handles.vertices] = isosurface(handles.NeuSeg , 0.5);
-h4 = figure;
+if ishandle(h1); close(h1); end
+if ishandle(h2); close(h2); end
+if ishandle(h3); close(h3); end
 
-figure(h4), patch ('Faces', handles.faces, 'Vertices', handles.vertices, 'Facecolor', 'green', 'Edgecolor', 'none'); axis equal;
+[handles.faces, handles.vertices] = isosurface(handles.NeuSeg , 0.5);
+if ishandle(h4)
+    
+    figure(h4), patch ('Faces', handles.faces, 'Vertices', handles.vertices, 'Facecolor', 'green', 'Edgecolor', 'none'); axis equal;
+    camlight; camlight(-80, -10); lighting phong;
+
+else
+    figure, patch ('Faces', handles.faces, 'Vertices', handles.vertices, 'Facecolor', 'green', 'Edgecolor', 'none'); axis equal;
 camlight; camlight(-80, -10); lighting phong;
+
+end
+
 axis off
+h =gca;
+h4=gcf;
+
 title('3D VIEW OF THE SEGMENTED STRUCTURE.');
 
 handles.output = hObject;
@@ -1649,13 +1710,14 @@ function pushbutton10_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton10 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global t t1 h1 h2 h3 SelectedMap segON
+global t t1 h1 h2 h3 h4 SelectedMap segON
 
 t = t+toc(t1);
 
 if ishandle(h1); close(h1); end
 if ishandle(h2); close(h2); end
 if ishandle(h3); close(h3); end
+if ishandle(h4); close(h4); end
 
 
 StrNotSaved = false;    %flag for segmented structure- saving
@@ -1681,18 +1743,17 @@ if handles.AnotherNeuron == 1
     switch choice
         
         case 'Yes'
-            
             %             pushbutton9_Callback(hObject, eventdata, handles);
             
             fileout = strcat('Neurone', num2str(handles.Neu));
             varname = genvarname(fileout);
-            s = struct('handles.Neuron', handles.NeuSeg, 'handles.faces', handles.faces, 'handles.vertices', handles.vertices,' tempo',t);
+            s = struct('Neuron', handles.NeuSeg, 'faces', handles.faces, 'vertices', handles.vertices,'tempo',t);
             eval([varname '= s;']);
             
-            cd(handles.npath)
+%             cd(handles.npath)
             handles.newfile = fullfile(handles.npath, handles.nfile);
             save(handles.newfile,fileout,'-append')    %the command overwrites if the variable already exists
-            cd(handles.olddir)
+%             cd(handles.olddir)
             
             t = 0;         % azzero il contatore del tempo
             %segON  = 0;         % manual segmentation OFF
@@ -1732,7 +1793,6 @@ if handles.AnotherNeuron == 1
             %dobbiamo refreshare tutte le variabili di default?
             
         case 'No'
-            
             %             pushbutton9_Callback(hObject, eventdata, handles);
             
             fileout = strcat('Neurone', num2str(handles.Neu));
@@ -1740,10 +1800,10 @@ if handles.AnotherNeuron == 1
             varname = genvarname(fileout);
             eval([varname '= s']);
             
-            cd(handles.npath)
+%             cd(handles.npath)
             handles.newfile = fullfile(handles.npath, handles.nfile);
             save(handles.newfile, fileout, '-append')
-            cd(handles.olddir)
+%             cd(handles.olddir)
             
     end
     
@@ -1753,23 +1813,22 @@ else
         
         case 'Yes'
             
-            
             %dm_tracing{handles.Neu, 1} = handles.NeuSeg;
             fileout = strcat('Neurone', num2str(handles.Neu));
             varname = genvarname(fileout);
             s = struct('Neuron', handles.NeuSeg, 'faces', handles.faces, 'vertices', handles.vertices, 'tempo',t);
             eval([varname '= s;']);
-            cd(handles.path_file)
+%             cd(handles.path_file)
             
             if handles.Neu == 1
                 
-                [handles.filesave, handles.path_save] = uiputfile('*.mat','Save the Neuron', handles.I_file(1:end-4));
+                [handles.filesave, handles.path_save] = uiputfile('*.mat','Save the Neuron', handles.I_file_tmp(1:end-4));
                 
                 if handles.filesave ~=0
                     
                     handles.newfile = fullfile(handles.path_save, handles.filesave);
                     save(handles.newfile, fileout)
-                    cd (handles.olddir)
+%                     cd (handles.olddir)
                     
                 else
                     
@@ -1782,7 +1841,7 @@ else
                 
                 handles.newfile = fullfile(handles.path_save, handles.filesave);
                 save(handles.newfile, fileout, '-append')
-                cd(handles.olddir)
+%                 cd(handles.olddir)
                 
             end
             
@@ -1822,22 +1881,21 @@ else
             end
             
         case 'No'
-            
             fileout = strcat('Neurone', num2str(handles.Neu));
             s = struct('Neuron', handles.NeuSeg, 'faces', handles.faces, 'vertices', handles.vertices, 'tempo', t);
             varname = genvarname(fileout);
             eval([varname '= s']);
-            cd(handles.path_file)
+%             cd(handles.path_file)
             
             if handles.Neu == 1
                 
-                [handles.filesave,handles.path_save] = uiputfile('*.mat', 'Save the neuron', handles.I_file(1:end-4));
+                [handles.filesave,handles.path_save] = uiputfile('*.mat', 'Save the neuron', handles.I_file_tmp(1:end-4));
                 
                 if handles.filesave ~= 0
                     
                     handles.newfile = fullfile(handles.path_save, handles.filesave);
                     save(handles.newfile, fileout)
-                    cd (handles.olddir)
+%                     cd (handles.olddir)
                     
                 else
                     
@@ -1850,7 +1908,7 @@ else
                 
                 handles.newfile = fullfile(handles.path_save, handles.filesave);
                 save(handles.newfile, fileout, '-append')
-                cd(handles.olddir)
+%                 cd(handles.olddir)
                 
             end
             
@@ -1861,13 +1919,13 @@ end
 if StrNotSaved
     
     msgbox('Neuron was not saved','Warning!','warn')
-    cd (handles.olddir)
+%     cd (handles.olddir)
     
 end
 
 handles.output = hObject;
 % Update handles structure
-guidata(hObject, handles);
+guidata(hObject, handles);set(0,'userdata',handles)
 
 % --- Executes on button press in pushbutton11.
 % --- MERGE AND GO TO IMAGEJ
@@ -1877,6 +1935,13 @@ function pushbutton11_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 % handles.NeuSeg;
 % handles.Vnew;
+global h1 h2 h3 h4
+
+if ishandle(h1);close(h1);end
+if ishandle(h2);close(h2);end
+if ishandle(h3);close(h3);end
+if ishandle(h4);close(h4);end
+StrNotSaved_tif=false;
 
 out1 = handles.Vnew;
 out2 = handles.NeuSeg;
@@ -1884,18 +1949,26 @@ out2 = handles.NeuSeg;
 Vindex = find(out2);
 VV=uint16(out1);
 VV(Vindex)=max(out1(:));
-outputFileName = inputdlg('output FileName','Save');
 
-if strcmp(outputFileName{1}(end-3:end), '.tif') == 1
-    for K=1:length(VV(1, 1, :))
-        imwrite(VV(:, :, K), [outputFileName{1}], 'WriteMode', 'handles.append');
+
+[handles.filesave_tif,handles.path_save_tif] = uiputfile('*.tif', 'Save the neuron in tiff format');
+
+if handles.filesave_tif ~=0;
+    if strcmp(handles.filesave_tif(end-3:end), '.tif') == 1
+        for K=1:length(VV(1, 1, :))
+            imwrite(VV(:, :, K), [strcat(handles.path_save_tif,handles.filesave_tif)], 'WriteMode', 'append');
+        end
+    else
+        for K=1:length(VV(1, 1, :))
+            imwrite(VV(:, :, K), [strcat(handles.path_save_tif,handles.filesave_tif),'.tif'], 'WriteMode', 'append');
+        end
     end
 else
-    for K=1:length(VV(1, 1, :))
-    imwrite(VV(:, :, K), [outputFileName{1},'.tif'], 'WriteMode', 'handles.append');
-    end
+    
+    StrNotSaved_tif = true;
+    warndlg('Neuron was not saved','Warning!')
+    %                     cd (handles.olddir)
 end
-
 handles.output = hObject;
 % Update handles structure
 guidata(hObject, handles);
@@ -1917,7 +1990,7 @@ function uipanel1_SelectionChangeFcn(hObject, eventdata, handles)
 %	OldValue: handle of the previously selected object or empty if none was selected
 %	NewValue: handle of the currently selected object
 % handles    structure with handles and user data (see GUIDATA)
-global  h1 segON SelectedMap
+global  h1 h2 h3 h4 segON SelectedMap
 
 handles.nmeno1 = get(handles.radiobutton8, 'Value');
 handles.n = get(handles.radiobutton6, 'Value');
@@ -1925,7 +1998,10 @@ handles.npiu1 = get(handles.radiobutton7, 'Value');
 
 %WARNING: when you are using the transparency, togglebutton 1 is
           %always set to 1
-
+if ishandle(h1);close(h1);end
+if ishandle(h2);close(h2);end
+if ishandle(h3);close(h3);end
+if ishandle(h4);close(h4);end
           
 if handles.radiobutton8.Value == 1 || handles.radiobutton7.Value == 1 || handles.radiobutton6.Value == 1
     
@@ -2260,12 +2336,12 @@ set(hObject, 'Enable', 'off')
 drawnow;
 set(hObject,'Enable','on')
 
-if segON == 1
-    
-    clf (h1, 'reset')
-    pushbutton2_Callback(handles.pushbutton2, eventdata, handles);
-    
-end
+% if segON == 1
+%     
+%     clf (h1, 'reset')
+%     pushbutton2_Callback(handles.pushbutton2, eventdata, handles);
+%     
+% end
 
 % handles.output = hObject;
 % Update handles structure
@@ -2481,6 +2557,8 @@ switch eventdata.Key
         
         if handles.slider1.Value == 1
             
+            set(handles.radiobutton6, 'Value', 1)
+            handles.n =1;
             set(handles.radiobutton8, 'Enable', 'off')
             
         end
@@ -2533,6 +2611,8 @@ switch eventdata.Key
         
         if handles.slider1.Value+1 == handles.num
             
+            set(handles.radiobutton6, 'Value', 1)
+            handles.n =1;
             set(handles.radiobutton7, 'Enable', 'off') 
             
         end
@@ -2589,11 +2669,36 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: delete(hObject) closes the figure
-delete(hObject);
-clear all
-clc
-msgbox('Thank you for using ManSegTool, see you soon!','Goodbye')
+global h1 h2 h3 h4 segON undoON splitON SelectedMap
 
+if ishandle(h1)
+    
+    close(h1);
+%     figure1_CloseRequestFcn(hObject,eventdata,handles);
+
+elseif ishandle(h2)
+    
+    close(h2)
+%     figure1_CloseRequestFcn(hObject,eventdata,handles);
+
+elseif ishandle(h3)
+    
+    close(h3)
+%     figure1_CloseRequestFcn(hObject,eventdata,handles);
+
+elseif ishandle(h4)
+    
+    close(h4)
+%     figure1_CloseRequestFcn(hObject,eventdata,handles);
+
+else
+    
+    delete(hObject);
+    clear all
+    % clc
+    msgbox('Thank you for using ManSegTool, see you soon!','Goodbye')
+
+end
 
 % --- Executes on button press in pushbutton13.
 % ---  SPLIT
@@ -2603,11 +2708,14 @@ function pushbutton13_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 % handles.NeuSeg
 
-global  h1 h2 h3 SelectedMap segON splitON
+global  h1 h2 h3 h4 SelectedMap segON splitON undoON closedGUI
 % 
+
 handles = get(0, 'userdata');
 guidata(hObject, handles)
 
+segON   = 0;
+undoON  = 0;
 splitON = 1;
 
 handles.radiobutton5.Value = 1;
@@ -2626,8 +2734,6 @@ axis off
 onair = 'Segmentation OFF';
 set(handles.text3, 'string', onair);
 set(handles.text3, 'FontSize', 14);
-
-segON = 0;
 
 axes(handles.axes1);
 imagesc(handles.Vnew(:, :, uint16(handles.slider1.Value))), colormap(handles.axes1, SelectedMap), %truesize
@@ -2658,6 +2764,11 @@ if ishandle(h2)
 
 end
 
+if ishandle(h4)
+    
+    close(h4)
+
+end
 
 if ishandle(h3)
     
@@ -2707,7 +2818,7 @@ while ishandle(h3)
         guidata(hObject, handles); set(0, 'userdata', handles);
         
     catch 
-        
+
         splitON = 0;
         
         break 
@@ -2731,7 +2842,7 @@ function popupmenu1_Callback(hObject, eventdata, handles)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns popupmenu1 contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from popupmenu1
-global SelectedMap VnewExist h1 segON ab
+global SelectedMap VnewExist h1 h2 h3 h4 segON ab undoON splitON
 
 str = get(hObject, 'String');
 val = get(hObject,'Value');
@@ -2794,12 +2905,31 @@ if ishandle(h1)
     figure(h1); imagesc(handles.Vnew(:, :, uint16(handles.slider1.Value))); colormap(h1, SelectedMap); axis off; %%truesize
     
 end
+if ishandle(h2)
+    
+    guidata(hObject, handles); set(0, 'userdata', handles)
+    clf (h2, 'reset')
+    
+    figure(h2); imagesc(handles.NeuSeg(:, :, uint16(handles.slider1.Value))); colormap(h2, SelectedMap), %truesize
+    axis off
+    
+end
 
-set(hObject,'Enable','off')
-drawnow;
-set(hObject,'Enable','on')
+if ishandle(h3)
+    
+    guidata(hObject, handles); set(0, 'userdata', handles)
+    clf (h3, 'reset')
+    
+    figure(h3); imagesc(handles.NeuSeg(:, :, uint16(handles.slider1.Value))); colormap(h3, SelectedMap), %truesize
+    axis off
+    
+end
+% set(hObject,'Enable','off')
+% drawnow;
+% set(hObject,'Enable','on')
 
 guidata(hObject, handles); set(0, 'userdata', handles);
 % set(0,'userdata',handles);
-
 if segON == 1; pushbutton2_Callback(hObject, eventdata, handles); end
+if undoON == 1; pushbutton6_Callback(hObject, eventdata, handles); end
+if splitON == 1; pushbutton13_Callback(hObject, eventdata, handles); end
